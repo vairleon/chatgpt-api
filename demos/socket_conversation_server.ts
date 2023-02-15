@@ -3,6 +3,7 @@ import { oraPromise } from 'ora'
 
 import { ChatGPTAPI, type ChatMessage } from '../src'
 import * as net from "net"
+import * as readline from "readline"  
 
 dotenv.config()
 
@@ -24,11 +25,14 @@ async function main() {
     
     let res: ChatMessage
     
+    readline.emitKeypressEvents(process.stdin)
+    process.stdin.setRawMode(true)
+
     var session_start = 0
     {
         // const server = 
-        net.createServer(socket => {
-            console.log('server created')
+        const server = net.createServer(socket => {
+            console.log('someone connected')
             // socket.on("connect", () => {
             //         console.log('socket connected')
             //         socket.write('chatgpt socket connected')
@@ -57,16 +61,26 @@ async function main() {
                         conversationId: res.conversationId,
                         parentMessageId: res.id
                       }))
-                    socket.write(res.text)
                 }
+                socket.write(res.text)
                 console.log(`send: ` + res.text)
 
                 // if (prompt.toString() == "kill server"){
                 //     socket.end()
                 // }
             })
-        }).listen(PORT, HOST)
+        })
+        server.listen(PORT, HOST)
         console.log("listening on " + HOST + ":" + PORT)
+
+        process.stdin.on('keypress', (str, key) =>{
+            if (key.ctrl==true && key.name == 'd'){
+                console.log('stop server!')
+                server.removeAllListeners()
+                server.close()
+                process.exit(0)
+            } 
+        })
     }
 }
 
